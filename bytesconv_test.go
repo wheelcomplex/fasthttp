@@ -7,9 +7,13 @@ import (
 	"net"
 	"testing"
 	"time"
+
+	"github.com/valyala/bytebufferpool"
 )
 
 func TestAppendHTMLEscape(t *testing.T) {
+	t.Parallel()
+
 	testAppendHTMLEscape(t, "", "")
 	testAppendHTMLEscape(t, "<", "&lt;")
 	testAppendHTMLEscape(t, "a", "a")
@@ -25,6 +29,8 @@ func testAppendHTMLEscape(t *testing.T, s, expectedS string) {
 }
 
 func TestParseIPv4(t *testing.T) {
+	t.Parallel()
+
 	testParseIPv4(t, "0.0.0.0", true)
 	testParseIPv4(t, "255.255.255.255", true)
 	testParseIPv4(t, "123.45.67.89", true)
@@ -56,6 +62,8 @@ func testParseIPv4(t *testing.T, ipStr string, isValid bool) {
 }
 
 func TestAppendIPv4(t *testing.T) {
+	t.Parallel()
+
 	testAppendIPv4(t, "0.0.0.0", true)
 	testAppendIPv4(t, "127.0.0.1", true)
 	testAppendIPv4(t, "8.8.8.8", true)
@@ -73,7 +81,7 @@ func testAppendIPv4(t *testing.T, ipStr string, isValid bool) {
 	s := string(AppendIPv4(nil, ip))
 	if isValid {
 		if s != ipStr {
-			t.Fatalf("unepxected ip %q. Expecting %q", s, ipStr)
+			t.Fatalf("unexpected ip %q. Expecting %q", s, ipStr)
 		}
 	} else {
 		ipStr = "non-v4 ip passed to AppendIPv4"
@@ -92,7 +100,7 @@ func testAppendUint(t *testing.T, n int) {
 }
 
 func testWriteHexInt(t *testing.T, n int, expectedS string) {
-	var w ByteBuffer
+	var w bytebufferpool.ByteBuffer
 	bw := bufio.NewWriter(&w)
 	if err := writeHexInt(bw, n); err != nil {
 		t.Fatalf("unexpected error when writing hex %x: %s", n, err)
@@ -107,6 +115,8 @@ func testWriteHexInt(t *testing.T, n int, expectedS string) {
 }
 
 func TestReadHexIntError(t *testing.T) {
+	t.Parallel()
+
 	testReadHexIntError(t, "")
 	testReadHexIntError(t, "ZZZ")
 	testReadHexIntError(t, "-123")
@@ -138,6 +148,8 @@ func testReadHexIntSuccess(t *testing.T, s string, expectedN int) {
 }
 
 func TestAppendHTTPDate(t *testing.T) {
+	t.Parallel()
+
 	d := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
 	s := string(AppendHTTPDate(nil, d))
 	expectedS := "Tue, 10 Nov 2009 23:00:00 GMT"
@@ -157,6 +169,8 @@ func TestAppendHTTPDate(t *testing.T) {
 }
 
 func TestParseUintError(t *testing.T) {
+	t.Parallel()
+
 	// empty string
 	testParseUintError(t, "")
 
@@ -174,20 +188,25 @@ func TestParseUintError(t *testing.T) {
 
 	// too big num
 	testParseUintError(t, "12345678901234567890")
+	testParseUintError(t, "1234567890123456789012")
 }
 
 func TestParseUfloatSuccess(t *testing.T) {
+	t.Parallel()
+
 	testParseUfloatSuccess(t, "0", 0)
 	testParseUfloatSuccess(t, "1.", 1.)
 	testParseUfloatSuccess(t, ".1", 0.1)
 	testParseUfloatSuccess(t, "123.456", 123.456)
 	testParseUfloatSuccess(t, "123", 123)
 	testParseUfloatSuccess(t, "1234e2", 1234e2)
-	testParseUfloatSuccess(t, "1234E-5", 1234E-5)
+	testParseUfloatSuccess(t, "1234E-5", 1234e-5)
 	testParseUfloatSuccess(t, "1.234e+3", 1.234e+3)
 }
 
 func TestParseUfloatError(t *testing.T) {
+	t.Parallel()
+
 	// empty num
 	testParseUfloatError(t, "")
 
@@ -259,6 +278,8 @@ func testParseUintSuccess(t *testing.T, s string, expectedN int) {
 }
 
 func TestAppendUnquotedArg(t *testing.T) {
+	t.Parallel()
+
 	testAppendUnquotedArg(t, "", "")
 	testAppendUnquotedArg(t, "abc", "abc")
 	testAppendUnquotedArg(t, "тест.abc", "тест.abc")

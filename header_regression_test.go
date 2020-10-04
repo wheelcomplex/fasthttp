@@ -9,6 +9,8 @@ import (
 )
 
 func TestIssue28ResponseWithoutBodyNoContentType(t *testing.T) {
+	t.Parallel()
+
 	var r Response
 
 	// Empty response without content-type
@@ -41,10 +43,12 @@ func TestIssue28ResponseWithoutBodyNoContentType(t *testing.T) {
 }
 
 func TestIssue6RequestHeaderSetContentType(t *testing.T) {
-	testIssue6RequestHeaderSetContentType(t, "GET")
-	testIssue6RequestHeaderSetContentType(t, "POST")
-	testIssue6RequestHeaderSetContentType(t, "PUT")
-	testIssue6RequestHeaderSetContentType(t, "PATCH")
+	t.Parallel()
+
+	testIssue6RequestHeaderSetContentType(t, MethodGet)
+	testIssue6RequestHeaderSetContentType(t, MethodPost)
+	testIssue6RequestHeaderSetContentType(t, MethodPut)
+	testIssue6RequestHeaderSetContentType(t, MethodPatch)
 }
 
 func testIssue6RequestHeaderSetContentType(t *testing.T, method string) {
@@ -77,11 +81,7 @@ func issue6VerifyRequestHeader(t *testing.T, h *RequestHeader, contentType strin
 	if string(h.Method()) != method {
 		t.Fatalf("unexpected method: %q. Expecting %q", h.Method(), method)
 	}
-	if method != "GET" {
-		if h.ContentLength() != contentLength {
-			t.Fatalf("unexpected content-length: %d. Expecting %d. method=%q", h.ContentLength(), contentLength, method)
-		}
-	} else if h.ContentLength() != 0 {
-		t.Fatalf("unexpected content-length for GET method: %d. Expecting 0", h.ContentLength())
+	if h.ContentLength() != contentLength {
+		t.Fatalf("unexpected content-length: %d. Expecting %d. method=%q", h.ContentLength(), contentLength, method)
 	}
 }

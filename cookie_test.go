@@ -7,6 +7,8 @@ import (
 )
 
 func TestCookieValueWithEqualAndSpaceChars(t *testing.T) {
+	t.Parallel()
+
 	testCookieValueWithEqualAndSpaceChars(t, "sth1", "/", "MTQ2NjU5NTcwN3xfUVduVXk4aG9jSmZaNzNEb1dGa1VjekY1bG9vMmxSWlJBZUN2Q1ZtZVFNMTk2YU9YaWtCVmY1eDRWZXd3M3Q5RTJRZnZMbk5mWklSSFZJcVlXTDhiSFFHWWdpdFVLd1hwbXR2UUN4QlJ1N3BITFpkS3Y4PXzDvPNn6JVDBFB2wYVYPHdkdlZBm6n1_0QB3_GWwE40Tg  ==")
 	testCookieValueWithEqualAndSpaceChars(t, "sth2", "/", "123")
 	testCookieValueWithEqualAndSpaceChars(t, "sth3", "/", "123 ==   1")
@@ -39,6 +41,8 @@ func testCookieValueWithEqualAndSpaceChars(t *testing.T, expectedName, expectedP
 }
 
 func TestCookieSecureHttpOnly(t *testing.T) {
+	t.Parallel()
+
 	var c Cookie
 
 	if err := c.Parse("foo=bar; HttpOnly; secure"); err != nil {
@@ -60,6 +64,8 @@ func TestCookieSecureHttpOnly(t *testing.T) {
 }
 
 func TestCookieSecure(t *testing.T) {
+	t.Parallel()
+
 	var c Cookie
 
 	if err := c.Parse("foo=bar; secure"); err != nil {
@@ -76,7 +82,7 @@ func TestCookieSecure(t *testing.T) {
 	if err := c.Parse("foo=bar"); err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
-	if c.HTTPOnly() {
+	if c.Secure() {
 		t.Fatalf("Unexpected secure flag set")
 	}
 	s = c.String()
@@ -85,7 +91,124 @@ func TestCookieSecure(t *testing.T) {
 	}
 }
 
+func TestCookieSameSite(t *testing.T) {
+	t.Parallel()
+
+	var c Cookie
+
+	if err := c.Parse("foo=bar; samesite"); err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	if c.SameSite() != CookieSameSiteDefaultMode {
+		t.Fatalf("SameSite must be set")
+	}
+	s := c.String()
+	if !strings.Contains(s, "; SameSite") {
+		t.Fatalf("missing SameSite flag in cookie %q", s)
+	}
+
+	if err := c.Parse("foo=bar; samesite=lax"); err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	if c.SameSite() != CookieSameSiteLaxMode {
+		t.Fatalf("SameSite Lax Mode must be set")
+	}
+	s = c.String()
+	if !strings.Contains(s, "; SameSite=Lax") {
+		t.Fatalf("missing SameSite flag in cookie %q", s)
+	}
+
+	if err := c.Parse("foo=bar; samesite=strict"); err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	if c.SameSite() != CookieSameSiteStrictMode {
+		t.Fatalf("SameSite Strict Mode must be set")
+	}
+	s = c.String()
+	if !strings.Contains(s, "; SameSite=Strict") {
+		t.Fatalf("missing SameSite flag in cookie %q", s)
+	}
+
+	if err := c.Parse("foo=bar; samesite=none"); err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	if c.SameSite() != CookieSameSiteNoneMode {
+		t.Fatalf("SameSite None Mode must be set")
+	}
+	s = c.String()
+	if !strings.Contains(s, "; SameSite=None") {
+		t.Fatalf("missing SameSite flag in cookie %q", s)
+	}
+
+	if err := c.Parse("foo=bar"); err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	c.SetSameSite(CookieSameSiteNoneMode)
+	s = c.String()
+	if !strings.Contains(s, "; SameSite=None") {
+		t.Fatalf("missing SameSite flag in cookie %q", s)
+	}
+	if !strings.Contains(s, "; secure") {
+		t.Fatalf("missing Secure flag in cookie %q", s)
+	}
+
+	if err := c.Parse("foo=bar"); err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	if c.SameSite() != CookieSameSiteDisabled {
+		t.Fatalf("Unexpected SameSite flag set")
+	}
+	s = c.String()
+	if strings.Contains(s, "SameSite") {
+		t.Fatalf("unexpected SameSite flag in cookie %q", s)
+	}
+}
+
+func TestCookieMaxAge(t *testing.T) {
+	t.Parallel()
+
+	var c Cookie
+
+	maxAge := 100
+	if err := c.Parse("foo=bar; max-age=100"); err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	if maxAge != c.MaxAge() {
+		t.Fatalf("max-age must be set")
+	}
+	s := c.String()
+	if !strings.Contains(s, "; max-age=100") {
+		t.Fatalf("missing max-age flag in cookie %q", s)
+	}
+
+	if err := c.Parse("foo=bar; expires=Tue, 10 Nov 2009 23:00:00 GMT; max-age=100;"); err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	if maxAge != c.MaxAge() {
+		t.Fatalf("max-age ignored")
+	}
+	s = c.String()
+	if s != "foo=bar; max-age=100" {
+		t.Fatalf("missing max-age in cookie %q", s)
+	}
+
+	expires := time.Unix(100, 0)
+	c.SetExpire(expires)
+	s = c.String()
+	if s != "foo=bar; max-age=100" {
+		t.Fatalf("expires should be ignored due to max-age: %q", s)
+	}
+
+	c.SetMaxAge(0)
+	s = c.String()
+	if s != "foo=bar; expires=Thu, 01 Jan 1970 00:01:40 GMT" {
+		t.Fatalf("missing expires %q", s)
+	}
+}
+
 func TestCookieHttpOnly(t *testing.T) {
+	t.Parallel()
+
 	var c Cookie
 
 	if err := c.Parse("foo=bar; HttpOnly"); err != nil {
@@ -112,10 +235,14 @@ func TestCookieHttpOnly(t *testing.T) {
 }
 
 func TestCookieAcquireReleaseSequential(t *testing.T) {
+	t.Parallel()
+
 	testCookieAcquireRelease(t)
 }
 
 func TestCookieAcquireReleaseConcurrent(t *testing.T) {
+	t.Parallel()
+
 	ch := make(chan struct{}, 10)
 	for i := 0; i < 10; i++ {
 		go func() {
@@ -170,12 +297,15 @@ func testCookieAcquireRelease(t *testing.T) {
 }
 
 func TestCookieParse(t *testing.T) {
+	t.Parallel()
+
 	testCookieParse(t, "foo", "foo")
 	testCookieParse(t, "foo=bar", "foo=bar")
 	testCookieParse(t, "foo=", "foo=")
 	testCookieParse(t, `foo="bar"`, "foo=bar")
 	testCookieParse(t, `"foo"=bar`, `"foo"=bar`)
-	testCookieParse(t, "foo=bar; domain=aaa.com; path=/foo/bar", "foo=bar; domain=aaa.com; path=/foo/bar")
+	testCookieParse(t, "foo=bar; Domain=aaa.com; PATH=/foo/bar", "foo=bar; domain=aaa.com; path=/foo/bar")
+	testCookieParse(t, "foo=bar; max-age= 101 ; expires= Tue, 10 Nov 2009 23:00:00 GMT", "foo=bar; max-age=101")
 	testCookieParse(t, " xxx = yyy  ; path=/a/b;;;domain=foobar.com ; expires= Tue, 10 Nov 2009 23:00:00 GMT ; ;;",
 		"xxx=yyy; expires=Tue, 10 Nov 2009 23:00:00 GMT; domain=foobar.com; path=/a/b")
 }
@@ -192,6 +322,8 @@ func testCookieParse(t *testing.T, s, expectedS string) {
 }
 
 func TestCookieAppendBytes(t *testing.T) {
+	t.Parallel()
+
 	c := &Cookie{}
 
 	testCookieAppendBytes(t, c, "", "bar", "bar")
@@ -218,6 +350,8 @@ func testCookieAppendBytes(t *testing.T, c *Cookie, key, value, expectedS string
 }
 
 func TestParseRequestCookies(t *testing.T) {
+	t.Parallel()
+
 	testParseRequestCookies(t, "", "")
 	testParseRequestCookies(t, "=", "")
 	testParseRequestCookies(t, "foo", "foo")
@@ -237,6 +371,8 @@ func testParseRequestCookies(t *testing.T, s, expectedS string) {
 }
 
 func TestAppendRequestCookieBytes(t *testing.T) {
+	t.Parallel()
+
 	testAppendRequestCookieBytes(t, "=", "")
 	testAppendRequestCookieBytes(t, "foo=", "foo=")
 	testAppendRequestCookieBytes(t, "=bar", "bar")
@@ -244,8 +380,9 @@ func TestAppendRequestCookieBytes(t *testing.T) {
 }
 
 func testAppendRequestCookieBytes(t *testing.T, s, expectedS string) {
-	var cookies []argsKV
-	for _, ss := range strings.Split(s, "&") {
+	kvs := strings.Split(s, "&")
+	cookies := make([]argsKV, 0, len(kvs))
+	for _, ss := range kvs {
 		tmp := strings.SplitN(ss, "=", 2)
 		if len(tmp) != 2 {
 			t.Fatalf("Cannot find '=' in %q, part of %q", ss, s)

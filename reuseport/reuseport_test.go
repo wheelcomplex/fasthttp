@@ -13,7 +13,23 @@ func TestTCP4(t *testing.T) {
 }
 
 func TestTCP6(t *testing.T) {
-	testNewListener(t, "tcp6", "ip6-localhost:10081", 20, 1000)
+	// Run this test only if tcp6 interface exists.
+	if hasLocalIPv6(t) {
+		testNewListener(t, "tcp6", "[::1]:10082", 20, 1000)
+	}
+}
+
+func hasLocalIPv6(t *testing.T) bool {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		t.Fatalf("cannot obtain local interfaces: %s", err)
+	}
+	for _, a := range addrs {
+		if a.String() == "::1/128" {
+			return true
+		}
+	}
+	return false
 }
 
 func testNewListener(t *testing.T, network, addr string, serversCount, requestsCount int) {
@@ -50,14 +66,14 @@ func testNewListener(t *testing.T, network, addr string, serversCount, requestsC
 		ch := make(chan struct{})
 		go func() {
 			if resp, err = ioutil.ReadAll(c); err != nil {
-				t.Fatalf("%d. unexpected error when reading response: %s", i, err)
+				t.Errorf("%d. unexpected error when reading response: %s", i, err)
 			}
 			close(ch)
 		}()
 		select {
 		case <-ch:
 		case <-time.After(200 * time.Millisecond):
-			t.Fatalf("%d. timeout when waiting for response: %s", i, err)
+			t.Fatalf("%d. timeout when waiting for response", i)
 		}
 
 		if string(resp) != req {
@@ -91,7 +107,7 @@ func serveEcho(t *testing.T, ln net.Listener) {
 		}
 		req, err := ioutil.ReadAll(c)
 		if err != nil {
-			t.Fatalf("unepxected error when reading request: %s", err)
+			t.Fatalf("unexpected error when reading request: %s", err)
 		}
 		if _, err = c.Write(req); err != nil {
 			t.Fatalf("unexpected error when writing response: %s", err)

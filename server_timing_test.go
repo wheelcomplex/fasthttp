@@ -347,15 +347,15 @@ func benchmarkNetHTTPServerGet(b *testing.B, clientsCount, requestsPerConn int) 
 	ch := make(chan struct{}, b.N)
 	s := &http.Server{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			if req.Method != "GET" {
+			if req.Method != MethodGet {
 				b.Fatalf("Unexpected request method: %s", req.Method)
 			}
 			h := w.Header()
 			h.Set("Content-Type", "text/plain")
 			if requestsPerConn == 1 {
-				h.Set("Connection", "close")
+				h.Set(HeaderConnection, "close")
 			}
-			w.Write(fakeResponse)
+			w.Write(fakeResponse) //nolint:errcheck
 			registerServedRequest(b, ch)
 		}),
 	}
@@ -390,7 +390,7 @@ func benchmarkNetHTTPServerPost(b *testing.B, clientsCount, requestsPerConn int)
 	ch := make(chan struct{}, b.N)
 	s := &http.Server{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			if req.Method != "POST" {
+			if req.Method != MethodPost {
 				b.Fatalf("Unexpected request method: %s", req.Method)
 			}
 			body, err := ioutil.ReadAll(req.Body)
@@ -404,9 +404,9 @@ func benchmarkNetHTTPServerPost(b *testing.B, clientsCount, requestsPerConn int)
 			h := w.Header()
 			h.Set("Content-Type", "text/plain")
 			if requestsPerConn == 1 {
-				h.Set("Connection", "close")
+				h.Set(HeaderConnection, "close")
 			}
-			w.Write(body)
+			w.Write(body) //nolint:errcheck
 			registerServedRequest(b, ch)
 		}),
 	}
@@ -447,7 +447,7 @@ func benchmarkServer(b *testing.B, s realServer, clientsCount, requestsPerConn i
 	ln := newFakeListener(b.N, clientsCount, requestsPerConn, request)
 	ch := make(chan struct{})
 	go func() {
-		s.Serve(ln)
+		s.Serve(ln) //nolint:errcheck
 		ch <- struct{}{}
 	}()
 
