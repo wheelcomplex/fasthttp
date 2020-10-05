@@ -3,6 +3,7 @@
 package fasthttpadaptor
 
 import (
+	"bytes"
 	"io"
 	"net/http"
 	"net/url"
@@ -71,6 +72,15 @@ func NewFastHTTPHandler(h http.Handler) fasthttp.RequestHandler {
 				hdr.Set(sk, sv)
 			}
 		})
+
+		// r.TLS is *tls.ConnectionState and is nil after convert,
+		// add this header for identify
+		if bytes.Compare(ctx.URI().Scheme(), []byte("https")) == 0 {
+			hdr.Set("x-fasthttp-scheme", "https")
+		} else {
+			hdr.Set("x-fasthttp-scheme", "http")
+		}
+
 		r.Header = hdr
 		r.Body = &netHTTPBody{body}
 		rURL, err := url.ParseRequestURI(r.RequestURI)
