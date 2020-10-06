@@ -74,7 +74,9 @@ func NewFastHTTPHandler(h http.Handler) fasthttp.RequestHandler {
 		})
 
 		// r.TLS is *tls.ConnectionState and is nil after convert,
-		// add this header for identify
+		// add this header for identify.
+		// And in net/http, *Request.URL.Scheme returns an empty string.
+		// see https://github.com/golang/go/issues/28940
 		if bytes.Compare(ctx.URI().Scheme(), []byte("https")) == 0 {
 			hdr.Set("x-fasthttp-scheme", "https")
 		} else {
