@@ -81,6 +81,10 @@ func NewFastHTTPHandler(h http.Handler) fasthttp.RequestHandler {
 			hdr.Set("x-fasthttp-scheme", "http")
 		}
 
+		// there is not simple way to get localAddr from http.Request,
+		// see https://github.com/golang/go/issues/6732
+		hdr.Set("x-fasthttp-localaddr", ctx.LocalAddr().String())
+
 		r.Header = hdr
 		r.Body = &netHTTPBody{body}
 		rURL, err := url.ParseRequestURI(r.RequestURI)
